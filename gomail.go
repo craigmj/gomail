@@ -27,8 +27,12 @@ func New(server string, from, to string, subject string) (*Email, error) {
 	if nil != err {
 		return nil, err
 	}
-	msg.Mail(from)
-	msg.Rcpt(to)
+	if err = msg.Mail(from); nil != err {
+		return nil, fmt.Errorf("MAIL error: %s", err.Error())
+	}
+	if err = msg.Rcpt(to); nil != err {
+		return nil, fmt.Errorf("RCPT error: %s", err.Error())
+	}
 	data, err := msg.Data()
 
 	if nil != err {
@@ -71,6 +75,9 @@ func (e *Email) Send() error {
 
 // Text sets the text content of the email.
 func (e *Email) Text(text string) {
+	if nil == e.alternative {
+		panic("e.alternative IS NIL")
+	}
 	out, _ := e.alternative.CreatePart(textproto.MIMEHeader(map[string][]string{
 		"Content-Type": []string{"text/plain; charset=utf-8"},
 	}))
