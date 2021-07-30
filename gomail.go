@@ -1,6 +1,7 @@
 package gomail
 
 import (
+	`crypto/tls`
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -20,12 +21,28 @@ type Email struct {
 
 // New constructs a new Email for sending.
 func New(server string, from, to string, subject string) (*Email, error) {
+	return NewWithAuth(server, nil, nil, from, to, subject)
+}
+// NewWithAuth constructs a server with optional TLS and Auth
+func NewWithAuth(server string, tlsConfig *tls.Config, auth smtp.Auth, from, to string, subject string) (*Email, error) {
 	if "" == server {
 		server = "localhost:25"
 	}
 	msg, err := smtp.Dial(server)
 	if nil != err {
 		return nil, err
+	}
+	if nil!=tlsConfig {
+		if err := msg.StartTLS(tlsConfig); nil!=err {
+			log.Errorf(`StartTLS failed : %s`, err.Error())
+			return nil, err
+		}
+	}
+	if nil!=auth {
+		if err := msg.Auth(auth); nil!=err {
+			log.Errorf(`Auth failed : %s`, err.Error())
+			return nil, err
+		}
 	}
 	if err = msg.Mail(from); nil != err {
 		return nil, fmt.Errorf("MAIL error: %s", err.Error())
